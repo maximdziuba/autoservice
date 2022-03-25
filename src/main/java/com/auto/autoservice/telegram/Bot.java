@@ -68,6 +68,10 @@ public class Bot extends TelegramLongPollingBot {
                     saveCarBrand(message);
                 else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_BRAND))
                     saveCarModel(message);
+                else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_MODEL))
+                    saveCarNumber(message);
+                else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_NUMBER))
+                    saveCarMileage(message);
         }
     }
 
@@ -93,7 +97,40 @@ public class Bot extends TelegramLongPollingBot {
         execute(sendMessage);
     }
 
-    private void saveCarModel(Message message) {
+    private void saveCarModel(Message message) throws TelegramApiException {
+        var carModel = message.getText();
+        var messageText = "Введіть номер машини";
+        var sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(message.getChatId()));
+        sendMessage.setText(messageText);
+        context.put("carModel", carModel);
+        state = BotState.SAVED_CAR_MODEL;
+        execute(sendMessage);
     }
 
+    private void saveCarNumber(Message message) throws TelegramApiException {
+        var carNumber = message.getText();
+        var messageText = "Введіть пробіг машини";
+        var sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(message.getChatId()));
+        sendMessage.setText(messageText);
+        context.put("carNumber", carNumber);
+        state = BotState.SAVED_CAR_NUMBER;
+        execute(sendMessage);
+    }
+
+    private void saveCarMileage(Message message) throws TelegramApiException {
+        var mileage = message.getText();
+        var brand = context.get("carBrand");
+        var model = context.get("carModel");
+        var number = context.get("carNumber");
+        var messageText = String.format("    Ваше авто \nМарка: %s\nМодель: %s\nНомер: %s\nПробіг: %s",
+                                                brand, model, number, mileage);
+        var sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(message.getChatId()));
+        sendMessage.setText(messageText);
+        context.put("carMileage", mileage);
+        state = BotState.SAVED_CAR_MILEAGE;
+        execute(sendMessage);
+    }
 }
