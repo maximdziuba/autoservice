@@ -1,6 +1,5 @@
 package com.auto.autoservice.telegram;
 
-import com.auto.autoservice.model.BotState;
 import com.auto.autoservice.repository.CarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +24,7 @@ public class Bot extends TelegramLongPollingBot {
     private final BotAuthorization botAuthorization;
     private final CarRepository carRepository;
     private final MessageSource messageSource;
+    private final BotUtils botUtils;
     private BotState state;
     private static Map<String, String> context = new HashMap<>();
 
@@ -59,7 +59,10 @@ public class Bot extends TelegramLongPollingBot {
     private void handleIncomingMessage(Message message) throws TelegramApiException {
         var messageText = message.getText();
         switch (messageText) {
-            case "/addcar":
+            case "/start":
+                greeting(message);
+                break;
+            case "Додати авто":
                 getCarBrand(message);
                 state = BotState.GET_CAR_BRAND;
                 break;
@@ -73,6 +76,16 @@ public class Bot extends TelegramLongPollingBot {
                 else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_NUMBER))
                     saveCarMileage(message);
         }
+    }
+
+    private void greeting(Message message) throws TelegramApiException {
+        var sendMessage = new SendMessage();
+        var messageText = "Привіт!";
+        var keyboard = botUtils.createReplyMarkupKeyboard("Додати авто");
+        sendMessage.setChatId(String.valueOf(message.getChatId()));
+        sendMessage.setText(messageText);
+        sendMessage.setReplyMarkup(keyboard);
+        execute(sendMessage);
     }
 
     // TODO: get messages from messages.properties file
@@ -124,8 +137,8 @@ public class Bot extends TelegramLongPollingBot {
         var brand = context.get("carBrand");
         var model = context.get("carModel");
         var number = context.get("carNumber");
-        var messageText = String.format("    Ваше авто \nМарка: %s\nМодель: %s\nНомер: %s\nПробіг: %s",
-                                                brand, model, number, mileage);
+        var messageText = String.format("Ваше авто \nМарка: %s\nМодель: %s\nНомер: %s\nПробіг: %s",
+                                                    brand, model, number, mileage);
         var sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(message.getChatId()));
         sendMessage.setText(messageText);

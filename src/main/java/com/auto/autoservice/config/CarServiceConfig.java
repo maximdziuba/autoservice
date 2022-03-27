@@ -8,6 +8,8 @@ import org.springframework.context.support.ReloadableResourceBundleMessageSource
 @Configuration
 public class CarServiceConfig {
 
+
+    // TODO: to make message source work correctly
     @Bean
     public MessageSource messageSource() {
         ReloadableResourceBundleMessageSource messageSource
