@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  autoservicebot:
+    container_name: autoservicebot
+    build: .
+    links:
+      - mongodb
+    ports:
+      - 8080:8080
+
+  mongodb:
+    container_name: mongodb
+    hostname: mongo
+    image: mongo:5.0
+    volumes:
+      - ./db_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - 28017:27017
