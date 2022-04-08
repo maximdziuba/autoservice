@@ -1,10 +1,13 @@
 HELP.md
 .gradle
-build/
+**/build/
 db_data/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+/gradle
+gradlew
+gradlew.bat
+#!gradle/wrapper/gradle-wrapper.jar
+#!**/src/main/**/build/
+#!**/src/test/**/build/
 
 ### STS ###
 .apt_generated
