@@ -1,6 +1,5 @@
 package com.auto.autoservice.model;
 
-import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,10 +9,10 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BotUser {
+public class User {
 
     private String id;
-    @Nullable
-    private String username;
+    private String name;
     private List<Car> cars;
+    private BotUser usersTelegramAccount;
 }

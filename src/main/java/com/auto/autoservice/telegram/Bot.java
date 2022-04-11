@@ -1,6 +1,10 @@
 package com.auto.autoservice.telegram;
 
+import com.auto.autoservice.model.BotUser;
+import com.auto.autoservice.repository.BotUserRepository;
 import com.auto.autoservice.repository.CarRepository;
+import com.auto.autoservice.telegram.handlers.CarMessageHandler;
+import com.auto.autoservice.telegram.handlers.CommonMessageHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -22,11 +27,14 @@ import java.util.Objects;
 public class Bot extends TelegramLongPollingBot {
 
     private final BotAuthorization botAuthorization;
+    private final CarMessageHandler carMessageHandler;
+    private final CommonMessageHandler commonMessageHandler;
     private final CarRepository carRepository;
     private final MessageSource messageSource;
     private final BotUtils botUtils;
-    private BotState state;
-    private static Map<String, String> context = new HashMap<>();
+    private final BotUserRepository botUserRepository;
+    public static BotState state;
+    public static Map<String, String> context = new HashMap<>();
 
     @Value("${telegram.bot.username}")
     private String username;
@@ -58,92 +66,41 @@ public class Bot extends TelegramLongPollingBot {
 
     private void handleIncomingMessage(Message message) throws TelegramApiException {
         var messageText = message.getText();
+        var sendMessage = new SendMessage();
         switch (messageText) {
             case "/start":
-                greeting(message);
+                sendMessage = commonMessageHandler.greeting(message);
+                execute(sendMessage);
+            case "На головну":
+                sendMessage = commonMessageHandler.greeting(message);
+                execute(sendMessage);
                 break;
             case "Додати авто":
-                getCarBrand(message);
+                sendMessage = carMessageHandler.getCarBrand(message);
+                execute(sendMessage);
                 state = BotState.GET_CAR_BRAND;
                 break;
+            case "Мої авто":
+                sendMessage = carMessageHandler.sendUsersCars(message);
+                execute(sendMessage);
+                break;
             default:
-                if (message.hasText() && Objects.equals(state, BotState.GET_CAR_BRAND))
-                    saveCarBrand(message);
-                else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_BRAND))
-                    saveCarModel(message);
-                else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_MODEL))
-                    saveCarNumber(message);
-                else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_NUMBER))
-                    saveCarMileage(message);
+                if (message.hasText() && Objects.equals(state, BotState.GET_CAR_BRAND)) {
+                    sendMessage = carMessageHandler.saveCarBrand(message);
+                    execute(sendMessage);
+                } else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_BRAND)) {
+                    sendMessage = carMessageHandler.saveCarModel(message);
+                    execute(sendMessage);
+                } else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_MODEL)) {
+                    sendMessage = carMessageHandler.saveCarNumber(message);
+                    execute(sendMessage);
+                } else if (message.hasText() && Objects.equals(state, BotState.SAVED_CAR_NUMBER)) {
+                    sendMessage = carMessageHandler.saveCarMileage(message);
+                    execute(sendMessage);
+                } else if (message.hasText() && Objects.equals(state, BotState.GET_USERS_CARS)) {
+                    sendMessage = carMessageHandler.sendSelectedCars(message);
+                    execute(sendMessage);
+                }
         }
-    }
-
-    private void greeting(Message message) throws TelegramApiException {
-        var sendMessage = new SendMessage();
-        var messageText = "Привіт!";
-        var keyboard = botUtils.createReplyMarkupKeyboard("Додати авто");
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        sendMessage.setReplyMarkup(keyboard);
-        execute(sendMessage);
-    }
-
-    // TODO: get messages from messages.properties file
-    private void getCarBrand(Message message) throws TelegramApiException {
-        var sendMessage = new SendMessage();
-//        var messageText = messageSource.getMessage("car.brand.message", null, Locale.forLanguageTag("ua"));
-        var messageText = "Введіть марку машини";
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        execute(sendMessage);
-        context.put("getCarBrand", null);
-    }
-
-    private void saveCarBrand(Message message) throws TelegramApiException {
-        var carBrand = message.getText();
-        var messageText = "Введіть модель машини";
-        var sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        context.put("carBrand", carBrand);
-        state = BotState.SAVED_CAR_BRAND;
-        execute(sendMessage);
-    }
-
-    private void saveCarModel(Message message) throws TelegramApiException {
-        var carModel = message.getText();
-        var messageText = "Введіть номер машини";
-        var sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        context.put("carModel", carModel);
-        state = BotState.SAVED_CAR_MODEL;
-        execute(sendMessage);
-    }
-
-    private void saveCarNumber(Message message) throws TelegramApiException {
-        var carNumber = message.getText();
-        var messageText = "Введіть пробіг машини";
-        var sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        context.put("carNumber", carNumber);
-        state = BotState.SAVED_CAR_NUMBER;
-        execute(sendMessage);
-    }
-
-    private void saveCarMileage(Message message) throws TelegramApiException {
-        var mileage = message.getText();
-        var brand = context.get("carBrand");
-        var model = context.get("carModel");
-        var number = context.get("carNumber");
-        var messageText = String.format("Ваше авто \nМарка: %s\nМодель: %s\nНомер: %s\nПробіг: %s",
-                                                    brand, model, number, mileage);
-        var sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(message.getChatId()));
-        sendMessage.setText(messageText);
-        context.put("carMileage", mileage);
-        state = BotState.SAVED_CAR_MILEAGE;
-        execute(sendMessage);
     }
 }
